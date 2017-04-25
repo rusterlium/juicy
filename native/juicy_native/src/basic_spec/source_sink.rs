@@ -1,12 +1,9 @@
 use std::io::Write;
 
-use super::BailType;
-
 use ::strings::BuildString;
 use ::numbers::number_data_to_term;
 
 use ::tree_spec::ValueType;
-use ::tree_spec::NodeId;
 
 use rustler::{NifEnv, NifTerm, NifEncoder};
 use rustler::types::map::map_new;
@@ -17,7 +14,7 @@ use ::iterative_json_parser::{Bailable, Source, Sink, Pos, PeekResult, Position,
 use iterative_json_parser::Range as PRange;
 
 use ::input_provider::InputProvider;
-use ::input_provider::streaming::{StreamingInputProvider, StreamingInputResult};
+use ::input_provider::single::SingleBinaryProvider;
 
 use ::path_tracker::PathTracker;
 
@@ -25,11 +22,10 @@ pub struct StreamingSS<'a, 'b>
     where 'a: 'b
 {
     pub env: NifEnv<'a>,
-    pub input: StreamingInputProvider<'a, 'b>,
+    pub input: SingleBinaryProvider<'a>,
     pub next_reschedule: usize,
     pub out_stack: Vec<NifTerm<'a>>,
     pub state: &'b mut SSState,
-    pub yields: Vec<NifTerm<'a>>,
 }
 
 pub struct SSState {
@@ -41,7 +37,7 @@ pub struct SSState {
 }
 
 impl<'a, 'b> Bailable for StreamingSS<'a, 'b> {
-    type Bail = BailType;
+    type Bail = ();
 }
 
 impl<'a, 'b> Source for StreamingSS<'a, 'b> {
@@ -51,40 +47,19 @@ impl<'a, 'b> Source for StreamingSS<'a, 'b> {
     fn skip(&mut self, num: usize) {
         self.state.position += num
     }
-    fn peek_char(&mut self) -> PeekResult<BailType> {
+    fn peek_char(&mut self) -> PeekResult<()> {
         if self.state.position == self.next_reschedule {
-            PeekResult::Bail(BailType::Reschedule)
+            PeekResult::Bail(())
         } else {
             match self.input.byte(self.state.position) {
-                StreamingInputResult::Ok(byte) => PeekResult::Ok(byte),
-                StreamingInputResult::AwaitInput => PeekResult::Bail(BailType::AwaitInput),
-                StreamingInputResult::Eof => unimplemented!(),
+                Some(byte) => PeekResult::Ok(byte),
+                None => unreachable!(),
             }
         }
     }
     fn peek_slice<'c>(&'c self, _length: usize) -> Option<&'c [u8]> {
         None
     }
-}
-
-impl<'a, 'b> StreamingSS<'a, 'b> {
-
-    fn do_stream(&mut self, node_id_opt: Option<NodeId>) -> Result<(), BailType> {
-        match node_id_opt {
-            Some(node_id) => {
-                let node = self.state.path_tracker.walker.spec.get(node_id);
-                if node.options.stream {
-                    let path = self.state.path_tracker.path.encode(self.env);
-                    let term = self.out_stack.pop().unwrap();
-                    self.out_stack.push(::atoms::streamed().encode(self.env));
-                    self.yields.push((::atoms::yield_(), (path, term)).encode(self.env))
-                }
-            }
-            None => (),
-        }
-        Ok(())
-    }
-
 }
 
 impl<'a, 'b> Sink for StreamingSS<'a, 'b> {
@@ -106,7 +81,7 @@ impl<'a, 'b> Sink for StreamingSS<'a, 'b> {
         self.out_stack.push(term);
 
         let curr_node = self.state.path_tracker.visit_terminal(pos, ValueType::Number);
-        self.do_stream(curr_node.current)?;
+        //self.do_stream(curr_node)?;
 
         self.state.first_needed = self.state.position;
         Ok(())
@@ -115,7 +90,7 @@ impl<'a, 'b> Sink for StreamingSS<'a, 'b> {
         self.out_stack.push(val.encode(self.env));
 
         let curr_node = self.state.path_tracker.visit_terminal(pos, ValueType::Boolean);
-        self.do_stream(curr_node.current)?;
+        //self.do_stream(curr_node)?;
 
         self.state.first_needed = self.state.position;
         Ok(())
@@ -124,7 +99,7 @@ impl<'a, 'b> Sink for StreamingSS<'a, 'b> {
         self.out_stack.push(::atoms::nil().encode(self.env));
 
         let curr_node = self.state.path_tracker.visit_terminal(pos, ValueType::Null);
-        self.do_stream(curr_node.current)?;
+        //self.do_stream(curr_node)?;
 
         self.state.first_needed = self.state.position;
         Ok(())
@@ -150,22 +125,34 @@ impl<'a, 'b> Sink for StreamingSS<'a, 'b> {
     }
     fn finalize_string(&mut self, pos: StringPosition) -> Result<(), Self::Bail> {
         let string = ::std::mem::replace(&mut self.state.current_string, BuildString::None);
+
         match pos {
             StringPosition::MapKey => {
                 let key = string.owned_to_vec();
 
-                let mut bin = OwnedNifBinary::new(key.len()).unwrap();
-                bin.as_mut_slice().write(&key).unwrap();
-                self.out_stack.push(bin.release(self.env).encode(self.env));
+                let curr_node_id = self.state.path_tracker.enter_key(key.clone());
+                let key_atom = curr_node_id
+                    .and_then(|node_id| {
+                        let curr_node = self.state.path_tracker.walker.spec.get(node_id);
+                        match curr_node.options.atom_mappings {
+                            Some(ref some) => some.get(&key).cloned(),
+                            None => None,
+                        }
+                    });
 
-                self.state.path_tracker.enter_key(key);
+                if let Some(atom) = key_atom {
+                    self.out_stack.push(atom.encode(self.env));
+                } else {
+                    let mut bin = OwnedNifBinary::new(key.len()).unwrap();
+                    bin.as_mut_slice().write(&key).unwrap();
+                    self.out_stack.push(bin.release(self.env).encode(self.env));
+                }
             }
             _ => {
                 let string_term = string.to_term(&mut self.input, self.env);
                 self.out_stack.push(string_term);
 
                 let curr_node = self.state.path_tracker.visit_terminal(pos.to_position(), ValueType::String);
-                self.do_stream(curr_node.current)?;
             }
         }
         self.state.first_needed = self.state.position;
@@ -175,8 +162,23 @@ impl<'a, 'b> Sink for StreamingSS<'a, 'b> {
     fn finalize_map(&mut self, _pos: Position) -> Result<(), Self::Bail> {
         self.state.first_needed = self.state.position;
 
-        let curr_node = self.state.path_tracker.exit_map();
-        self.do_stream(curr_node.current)?;
+        let curr_node_id = self.state.path_tracker.exit_map();
+
+        let struct_atom = curr_node_id.current
+            .and_then(|node_id| {
+                let curr_node = self.state.path_tracker.walker.spec.get(node_id);
+                match curr_node.options.struct_atom {
+                    Some(ref atom) => Some(atom.clone()),
+                    None => None,
+                }
+            });
+
+        if let Some(atom) = struct_atom {
+            let term = self.out_stack.pop().unwrap();
+            self.out_stack.push(term.map_put(
+                ::atoms::__struct__().encode(self.env),
+                atom.encode(self.env)).ok().unwrap());
+        }
 
         Ok(())
     }
@@ -187,7 +189,6 @@ impl<'a, 'b> Sink for StreamingSS<'a, 'b> {
         self.state.first_needed = self.state.position;
 
         let curr_node = self.state.path_tracker.exit_array();
-        self.do_stream(curr_node.current)?;
 
         Ok(())
     }

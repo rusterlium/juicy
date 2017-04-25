@@ -1,3 +1,7 @@
+defmodule JuicyTest.TestStruct do
+  defstruct some: nil, thing: nil
+end
+
 defmodule JuicyTest do
   use ExUnit.Case
   doctest Juicy
@@ -43,7 +47,7 @@ defmodule JuicyTest do
     assert :ok == Juicy.validate_spec({:map, [], {:any, []}})
     assert :ok == Juicy.validate_spec({:map, [], {:any, [stream: true]}})
     assert :ok == Juicy.validate_spec({:map_keys, [], %{"a" => {:any, []}}})
-    assert :ok == Juicy.validate_spec({:map, [atom_mappings: %{"some" => :some}], {:any, []}})
+    assert :ok == Juicy.validate_spec({:map, [atom_keys: [:some]], {:any, []}})
     assert :error == Juicy.validate_spec(nil)
     assert :error == Juicy.validate_spec({:abc, [], {:any, []}})
     assert :error == Juicy.validate_spec({:map_keys, [], %{0 => {:any, []}}})
@@ -71,8 +75,23 @@ defmodule JuicyTest do
     assert out == [error: :early_eoi]
   end
 
-  test "json from input stream" do
-    device = File.stream!("")
+  test "json parsing with simple spec" do
+    input = ~s({"a": 0, "b": 1})
+    spec = {:map, [atom_keys: [:a, :b]], {:any, []}}
+    out = Juicy.parse_spec(input, spec)
+
+    assert out == {:ok, %{a: 0, b: 1}}
+  end
+
+  test "json parsing into struct with spec" do
+    input = ~s([{"some": 0, "thing": 1}, {"some": 2, "thing": 3, "else": 4}])
+    spec = {:array, [], {:map, [atom_keys: [:some, :thing], struct_atom: JuicyTest.TestStruct, ignore_non_atoms: true], {:any, []}}}
+    out = Juicy.parse_spec(input, spec)
+
+    assert out == {:ok, [
+                      %JuicyTest.TestStruct{some: 0, thing: 1},
+                      %JuicyTest.TestStruct{some: 2, thing: 3},
+                    ]}
   end
 
 end

@@ -14,9 +14,13 @@ extern crate iterative_json_parser;
 
 mod numbers;
 mod strings;
-mod basic;
-mod streaming;
 mod tree_spec;
+mod input_provider;
+mod path_tracker;
+
+mod basic;
+mod basic_spec;
+mod streaming;
 
 mod atoms {
     rustler_atoms! {
@@ -29,16 +33,24 @@ mod atoms {
         atom yield_ = "yield";
         atom await_input;
         atom finished;
+        atom __struct__;
     }
 }
 
 rustler_export_nifs! {
     "Elixir.Juicy.Native",
-    [("parse_init", 1, basic::parse),
-     ("parse_iter", 3, basic::parse_iter),
-     ("stream_parse_init", 1, streaming::parse_init),
-     ("stream_parse_iter", 2, streaming::parse_iter),
-     ("validate_spec", 1, validate_spec)],
+    [
+        ("parse_init", 1, basic::parse),
+        ("parse_iter", 3, basic::parse_iter),
+
+        ("spec_parse_init", 2, basic_spec::parse_init),
+        ("spec_parse_iter", 1, basic_spec::parse_iter),
+
+        ("stream_parse_init", 1, streaming::parse_init),
+        ("stream_parse_iter", 2, streaming::parse_iter),
+
+        ("validate_spec", 1, validate_spec),
+    ],
     Some(on_init)
 }
 
@@ -51,6 +63,7 @@ fn validate_spec<'a>(env: NifEnv<'a>, args: &[NifTerm<'a>]) -> NifResult<NifTerm
 
 fn on_init<'a>(env: NifEnv<'a>, _load_info: NifTerm<'a>) -> bool {
     resource_struct_init!(basic::IterStateWrapper, env);
+    resource_struct_init!(basic_spec::BasicSpecIterStateWrapper, env);
     resource_struct_init!(streaming::StreamingIterStateWrapper, env);
     true
 }

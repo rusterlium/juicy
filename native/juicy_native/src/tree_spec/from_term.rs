@@ -20,8 +20,8 @@ mod atoms {
         atom map_keys;
         atom array;
         atom struct_atom;
-        atom atom_mappings;
-        atom ignore_not_mapped;
+        atom atom_keys;
+        atom ignore_non_atoms;
     }
 }
 
@@ -35,17 +35,17 @@ fn read_opts<'a>(term: NifTerm<'a>, stream_collect: bool) -> NifResult<NodeOptio
             opts.stream = value.decode()?;
         } else if atoms::struct_atom() == key {
             opts.struct_atom = Some(value.decode()?);
-        } else if atoms::atom_mappings() == key {
-            let mut map: HashMap<String, NifAtom> = HashMap::new();
-            let iterator: NifMapIterator = value.decode()?;
-            for (key_term, value_term) in iterator {
-                let key: String = key_term.decode()?;
-                let value: NifAtom = value_term.decode()?;
-                map.insert(key, value);
+        } else if atoms::atom_keys() == key {
+            let mut map: HashMap<Vec<u8>, NifAtom> = HashMap::new();
+            let iterator: NifListIterator = value.decode()?;
+            for atom_term in iterator {
+                let atom_str: String = atom_term.atom_to_string()?;
+                let atom: NifAtom = atom_term.decode()?;
+                map.insert(atom_str.into_bytes(), atom);
             }
             opts.atom_mappings = Some(map);
-        } else if atoms::ignore_not_mapped() == key {
-            opts.ignore_not_mapped = value.decode()?;
+        } else if atoms::ignore_non_atoms() == key {
+            opts.ignore_non_atoms = value.decode()?;
         }
 
     }

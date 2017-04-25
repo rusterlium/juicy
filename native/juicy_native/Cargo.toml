@@ -9,14 +9,14 @@ path = "src/lib.rs"
 crate-type = ["dylib"]
 
 [dependencies]
-rustler = { path = "../../../Rustler" }
-rustler_codegen = "0.13.0"
+rustler = "0.14.0"
+rustler_codegen = "0.14.0"
 lazy_static = "0.2"
 
 num-traits = "0.1"
 num-bigint = "0.1"
 
-iterative_json_parser = { path = "../../../rust_iterative_json_parser/" }
+iterative_json_parser = { git = "https://github.com/hansihe/rust_iterative_json_parser" }
 
 [profile.release]
 debug = true

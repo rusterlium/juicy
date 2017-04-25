@@ -3,36 +3,23 @@ use iterative_json_parser::{Parser, Pos, ParseError, Unexpected};
 use rustler::{NifEnv, NifTerm, NifResult, NifEncoder};
 use rustler::resource::ResourceArc;
 use rustler::types::binary::NifBinary;
-use rustler::types::binary::OwnedNifBinary;
 use rustler::types::list::NifListIterator;
 
 use ::strings::BuildString;
 
 use ::tree_spec::spec_from_term;
-use ::tree_spec::{SpecWalker, PathEntry};
+use ::tree_spec::SpecWalker;
 
-use std::io::Write;
+use ::input_provider::streaming::StreamingInputProvider;
+
+use ::path_tracker::PathTracker;
+
 use std::sync::Mutex;
 use std::ops::DerefMut;
 use std::ops::Range;
 
-mod input_binaries;
-use self::input_binaries::InputBinaries;
 mod source_sink;
 use self::source_sink::{StreamingSS, SSState};
-
-impl NifEncoder for PathEntry {
-    fn encode<'a>(&self, env: NifEnv<'a>) -> NifTerm<'a> {
-        match self {
-            &PathEntry::Index(idx) => (idx as u64).encode(env),
-            &PathEntry::Key(ref key) => {
-                let mut bin = OwnedNifBinary::new(key.len()).unwrap();
-                bin.as_mut_slice().write(key).unwrap();
-                bin.release(env).encode(env)
-            }
-        }
-    }
-}
 
 #[derive(Copy, Clone)]
 pub enum BailType {
@@ -46,13 +33,11 @@ fn format_unexpected<'a>(env: NifEnv<'a>, pos: Pos, reason: Unexpected) -> NifTe
     (::atoms::error(), (::atoms::unexpected(), position, explaination)).encode(env)
 }
 
-
 pub struct StreamingIterState {
     parser: Parser,
     ss_state: SSState,
 }
 pub struct StreamingIterStateWrapper(Mutex<StreamingIterState>);
-
 
 fn read_binaries<'a>(term: NifTerm<'a>) -> NifResult<Vec<(Range<usize>, NifBinary<'a>)>> {
     let binaries_iter: NifListIterator = term.decode()?;
@@ -80,8 +65,10 @@ pub fn parse_init<'a>(env: NifEnv<'a>, args: &[NifTerm<'a>]) -> NifResult<NifTer
     let spec = spec_from_term(args[0])?;
 
     let ss_state = SSState {
-        walker: SpecWalker::new(spec),
-        path: Vec::new(),
+        path_tracker: PathTracker {
+            path: Vec::new(),
+            walker: SpecWalker::new(spec),
+        },
 
         position: 0,
         first_needed: 0,
@@ -110,7 +97,7 @@ pub fn parse_iter<'a>(env: NifEnv<'a>, args: &[NifTerm<'a>]) -> NifResult<NifTer
 
         let mut ss = StreamingSS {
             env: env,
-            input: InputBinaries { binaries: &binaries_ranges },
+            input: StreamingInputProvider { binaries: &binaries_ranges },
             next_reschedule: iter_state.ss_state.position + 40_000,
             out_stack: stack,
             state: &mut iter_state.ss_state,

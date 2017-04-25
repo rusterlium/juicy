@@ -1,0 +1,90 @@
+* Node types
+** Primitives
+*** enum - May be one of several values
+**** values: %{string => atom} | [string]
+*** static - Will be static value, regardless of what it is in the JSON
+**** value: term
+*** value - JSON value without validation or transformation
+** Composing
+*** monomorphic_map - All keys map to one value type
+**** value: n
+**** atom_keys: [atom]
+**** reject_non_atoms: bool
+**** base: :empty | map
+*** map - Key to value mappings
+**** values: %{string => n}
+**** atom_keys: [atom]
+**** reject_non_atoms: bool
+**** base: :empty | map
+*** array - All indices map to one value type
+**** value: n
+*** tuple - Fixed length, indices map to individual types
+**** values: [n]
+
+* Matchers
+** All composing types takes matchers as subtypes.
+** Root type is a matcher.
+** Types
+*** none - Performs no matching, all values map to a single node type
+**** node type directly
+*** tagged_map - Subtype must be map. Matches on key in said map
+**** key_name: string
+**** mappings: %{string => n}
+**** default: :error | :ignore | {:node, n}
+*** tag_array - Subtype must be array of [tag, value]
+**** mappings: %{string => n}
+**** default: :error | :ignore | {:node, n}
+*** type - Matches on the type of the key
+**** type_mappings: %{string: string_matcher, number: number_matcher, ...}
+
+* Type matching
+** Done with a simple bytecode
+
+* Type matchers
+*** array
+**** child
+*** map
+**** child
+*** string
+**** min_length: integer
+**** max_length: integer
+**** child
+*** number
+**** min: 0
+**** max: 0
+**** child
+*** bool
+**** child
+*** null
+**** child
+
+{:type, type_mappings: %{string: [child: {:value, []}], null: [child: {:static, [value: ""]}}}
+
+
+
+
+
+
+
+
+
+
+* VM idea
+** Everything above is done with primitive operations
+** Operations can operate on the value stack
+** Certain invariants must be enforced to keep stack sane
+** Implementation strategy
+*** Bytecode written on a node-by-node basis
+**** Easy way to preserve topology, what if we want to change it?
+*** Uniform bytecode-space
+**** We get bytecode-soup, maximally flexible
+**** Less compile-time verification
+** Execution points
+*** Start array
+*** End array
+*** Start object
+*** End object
+*** Value
+** Operations
+*** parse_value - parses a full standard json value and pushes it to stack
+

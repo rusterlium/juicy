@@ -1,6 +1,5 @@
 use iterative_json_parser::{Parser, Source, PeekResult, Sink, Range, Pos, NumberData, ParseError,
-                            Unexpected, Bailable, SourceSink, BailVariant, Position,
-                            StringPosition};
+                            Unexpected, Bailable, Position, StringPosition};
 
 use rustler::{NifEnv, NifTerm, NifResult, NifEncoder};
 use rustler::resource::ResourceArc;
@@ -10,6 +9,8 @@ use rustler::types::binary::OwnedNifBinary;
 
 use ::strings::BuildString;
 use ::numbers::number_data_to_term;
+use ::input_provider::InputProvider;
+use ::input_provider::single::SingleBinaryProvider;
 
 use std::io::Write;
 use std::sync::Mutex;
@@ -18,8 +19,7 @@ use std::ops::DerefMut;
 struct BasicSS<'a, 'b> {
     env: NifEnv<'a>,
 
-    source: &'a [u8],
-    source_binary: NifBinary<'a>,
+    input: SingleBinaryProvider<'a>,
 
     position: usize,
     next_reschedule: usize,
@@ -41,19 +41,20 @@ impl<'a, 'b> Source for BasicSS<'a, 'b> {
     fn peek_char(&mut self) -> PeekResult<()> {
         if self.position == self.next_reschedule {
             PeekResult::Bail(())
-        } else if self.position < self.source.len() {
-            PeekResult::Ok(self.source[self.position])
+        } else if let Some(character) = self.input.byte(self.position) {
+            PeekResult::Ok(character)
         } else {
             PeekResult::Eof
         }
     }
-    fn peek_slice<'c>(&'c self, length: usize) -> Option<&'c [u8]> {
-        let (_, slice) = self.source.split_at(self.position);
-        if slice.len() >= length {
-            Some(slice)
-        } else {
-            None
-        }
+    fn peek_slice<'c>(&'c self, _length: usize) -> Option<&'c [u8]> {
+        // let (_, slice) = self.source.split_at(self.position);
+        // if slice.len() >= length {
+        //    Some(slice)
+        // else {
+        //    None
+        //
+        None
     }
 }
 
@@ -67,7 +68,7 @@ impl<'a, 'b> Sink for BasicSS<'a, 'b> {
     }
     fn push_number(&mut self, _pos: Position, num: NumberData) -> Result<(), Self::Bail> {
         let term = number_data_to_term(self.env, num, |r, b| {
-            b.extend_from_slice(&self.source[r.start..r.end]);
+            self.input.push_range(r, b);
         });
         self.out_stack.push(term);
         Ok(())
@@ -85,33 +86,27 @@ impl<'a, 'b> Sink for BasicSS<'a, 'b> {
         *self.current_string = BuildString::new();
     }
     fn append_string_range(&mut self, range: Range) {
-        let source = self.source;
+        let input = &self.input;
         self.current_string.append_range(range, |r, b| {
-            b.extend_from_slice(&source[r.start..r.end]);
+            input.push_range(r, b);
         });
     }
     fn append_string_single(&mut self, character: u8) {
-        let source = self.source;
+        let input = &self.input;
         self.current_string.append_single(character, |r, b| {
-            b.extend_from_slice(&source[r.start..r.end]);
+            input.push_range(r, b);
         });
     }
     fn append_string_codepoint(&mut self, codepoint: char) {
-        let source = self.source;
+        let input = &self.input;
         self.current_string.append_codepoint(codepoint, |r, b| {
-            b.extend_from_slice(&source[r.start..r.end]);
+            input.push_range(r, b);
         });
     }
     fn finalize_string(&mut self, _pos: StringPosition) -> Result<(), Self::Bail> {
         let string_term = match *self.current_string {
             BuildString::None => "".encode(self.env),
-            BuildString::Range(range) => {
-                self.source_binary
-                    .make_subbinary(range.start, range.end - range.start)
-                    .ok()
-                    .unwrap()
-                    .encode(self.env)
-            }
+            BuildString::Range(range) => self.input.range_to_term(self.env, range),
             BuildString::Owned(ref buf) => {
                 let mut bin = OwnedNifBinary::new(buf.len()).unwrap();
                 bin.as_mut_slice().write(buf).unwrap();
@@ -167,12 +162,9 @@ fn parse_inner<'a>(env: NifEnv<'a>,
                    stack: Vec<NifTerm<'a>>,
                    iter_state: &mut IterState)
                    -> Result<NifTerm<'a>, Vec<NifTerm<'a>>> {
-    let input_slice = input.as_slice();
-
     let mut ss = BasicSS {
         env: env,
-        source: input_slice,
-        source_binary: input,
+        input: SingleBinaryProvider::new(input),
         position: iter_state.source_pos,
         next_reschedule: iter_state.source_pos + 40_000,
         out_stack: stack,

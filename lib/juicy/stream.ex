@@ -1,4 +1,5 @@
 defmodule Juicy.Stream do
+  @moduledoc false
 
   defstruct reader: nil, spec: nil, binaries: nil, parser: nil, output_queue: [], state: {:read_input, :parsing_not_done, nil}
 
@@ -32,7 +33,7 @@ defimpl Enumerable, for: Juicy.Stream do
   def count(_stream) do
     {:error, __MODULE__}
   end
-  def member?(_stream) do
+  def member?(_stream, _element) do
     {:error, __MODULE__}
   end
 

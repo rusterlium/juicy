@@ -3,16 +3,16 @@ name = "juicy_native"
 version = "0.1.0"
 dependencies = [
  "iterative_json_parser 0.1.0",
- "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-bigint 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustler 0.13.0",
+ "rustler 0.14.0",
  "rustler_codegen 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "erlang_nif-sys"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -29,7 +29,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "lazy_static"
-version = "0.2.2"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -63,7 +63,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "quote"
-version = "0.3.14"
+version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -81,9 +81,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "rustler"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
- "erlang_nif-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "erlang_nif-sys 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -92,16 +92,16 @@ name = "rustler_codegen"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "quote 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 0.11.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.11.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "syn"
-version = "0.11.8"
+version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "quote 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -133,18 +133,18 @@ version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
-"checksum erlang_nif-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d79465e43f08885acd5a1ff982a9c0ee95e530aa4844336c14657c99489c8e2d"
+"checksum erlang_nif-sys 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5e8ccb0939de694f0c444f838a7937cd1ddda29232157faaf817913ea67a1ac4"
 "checksum lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)" = "cf186d1a8aa5f5bee5fd662bc9c1b949e0259e1bcc379d1f006847b0080c7417"
-"checksum lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6abe0ee2e758cd6bc8a2cd56726359007748fbf4128da998b65d0b70f881e19b"
+"checksum lazy_static 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "7291b1dd97d331f752620b02dfdbc231df7fc01bf282a00769e1cdb963c460dc"
 "checksum libc 0.2.21 (registry+https://github.com/rust-lang/crates.io-index)" = "88ee81885f9f04bff991e306fea7c1c60a5f0f9e409e99f6b40e3311a3363135"
 "checksum num-bigint 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)" = "5e2955fede25639c4f4f797e864b7585f20d98069c45e0c86b1d22a808eb9f77"
 "checksum num-integer 0.1.33 (registry+https://github.com/rust-lang/crates.io-index)" = "21e4df1098d1d797d27ef0c69c178c3fab64941559b290fcae198e0825c9c8b5"
 "checksum num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)" = "e1cbfa3781f3fe73dc05321bed52a06d2d491eaa764c52335cf4399f046ece99"
-"checksum quote 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "7375cf7ad34a92e8fd18dd9c42f58b9a11def59ab48bec955bf359a788335592"
+"checksum quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6e920b65c65f10b2ae65c831a81a073a89edd28c7cce89475bff467ab4167a"
 "checksum rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "022e0636ec2519ddae48154b028864bdce4eaf7d35226ab8e65c611be97b189d"
 "checksum rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)" = "237546c689f20bb44980270c73c3b9edd0891c1be49cc1274406134a66d3957b"
 "checksum rustler_codegen 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4bbc32a829a716371133577cd3aeaa6617c715516f6077d53b1f9c06d1aec4d2"
-"checksum syn 0.11.8 (registry+https://github.com/rust-lang/crates.io-index)" = "37c279fb816210c9bb28b2c292664581e7b87b4561e86b94df462664d8620bb8"
+"checksum syn 0.11.9 (registry+https://github.com/rust-lang/crates.io-index)" = "480c834701caba3548aa991e54677281be3a5414a9d09ddbdf4ed74a569a9d19"
 "checksum synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a393066ed9010ebaed60b9eafa373d4b1baac186dd7e008555b0f702b51945b6"
 "checksum unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f860d7d29cf02cb2f3f359fd35991af3d30bac52c57d265a3c461074cb4dc"
 "checksum unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1f2ae5ddb18e1c92664717616dd9549dde73f539f01bd7b77c2edb2446bdff91"

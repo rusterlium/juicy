@@ -5,7 +5,7 @@ mod from_term;
 mod walker;
 
 pub use self::from_term::spec_from_term;
-pub use self::walker::{SpecWalker, PathEntry};
+pub use self::walker::{SpecWalker, PathEntry, PathPosition};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ValueType {
@@ -15,15 +15,6 @@ pub enum ValueType {
     Number,
     Boolean,
     Null,
-}
-
-impl ValueType {
-    pub fn is_terminal(self) -> bool {
-        match self {
-            ValueType::Object | ValueType::Array => false,
-            _ => true,
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -66,7 +57,7 @@ impl NodeVariant {
         }
     }
 
-    pub fn child_key(&self, key: &[u8]) -> Option<NodeId> {
+    pub fn child_key(&self, _key: &[u8]) -> Option<NodeId> {
         match self {
             &NodeVariant::Sentinel => unreachable!(),
             &NodeVariant::Any => None,
@@ -76,7 +67,7 @@ impl NodeVariant {
         }
     }
 
-    pub fn child_index(&self, index: usize) -> Option<NodeId> {
+    pub fn child_index(&self, _index: usize) -> Option<NodeId> {
         match self {
             &NodeVariant::Sentinel => unreachable!(),
             &NodeVariant::Any => None,
@@ -93,8 +84,8 @@ pub struct NodeOptions {
     pub stream: bool,
     pub stream_collect: bool,
     pub struct_atom: Option<NifAtom>,
-    pub atom_mappings: Option<HashMap<String, NifAtom>>,
-    pub ignore_not_mapped: bool,
+    pub atom_mappings: Option<HashMap<Vec<u8>, NifAtom>>,
+    pub ignore_non_atoms: bool,
 }
 impl Default for NodeOptions {
     fn default() -> Self {
@@ -103,7 +94,7 @@ impl Default for NodeOptions {
             stream_collect: false,
             struct_atom: None,
             atom_mappings: None,
-            ignore_not_mapped: false,
+            ignore_non_atoms: false,
         }
     }
 }
@@ -116,10 +107,6 @@ pub struct Spec {
 impl Spec {
     pub fn get(&self, id: NodeId) -> &Node {
         &self.nodes[id.0]
-    }
-
-    pub fn root(&self) -> &Node {
-        self.get(self.root)
     }
 
     pub fn root_id(&self) -> NodeId {
