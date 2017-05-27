@@ -6,7 +6,7 @@ Juicy is a JSON parser written as a NIF in the Rust language.
 
 Features:
 
-* Safety - Juicy is written entirely in safe Rust code. This means that there is a lot less ways it can crash the VM then something written in C. I have not had a single VM crash while developing this.
+* Safety - Juicy is written entirely in safe Rust code. This means that there is a lot less ways it can crash the VM than something written in C. I have not had a single VM crash while developing this.
 * Speed - Juicy is comparible in speed to jiffy, and beats Poison at all benchmarks I have tried so far.
 * Streaming - Juicy supports parsing a stream of JSON. It can be configured to yield parts of a JSON document as they are read in, without keeping the whole file in memory. This makes it possible to parse very large JSON files while avoiding keeping the whole file in memory.
 * Convenience - Juicy supports parsing JSON directly into a rigidly defined schema. That includes maps with atom keys and elixir structs. **Not fully implemented**
